@@ -1,10 +1,13 @@
 #include "TMCCInterface.h"
-
+#include "PDIInterface.h"
 #ifdef WINDOWS
 #include <windows.h>
 #include <initguid.h>
 #include <devguid.h>
 #include <setupapi.h>
+
+HANDLE serialPort;
+static HANDLE s_serial = nullptr;
 
 #endif // WINDOWS
 #include <filesystem>
@@ -12,11 +15,6 @@
 static std::vector<DeviceInfo> s_devices;
 static DeviceInfo* s_currentDevice;
 
-#ifdef WINDOWS
-static HANDLE s_serial = nullptr;
-#else // !WINDOWS
-
-#endif // !WINDOWS
 
 DeviceInfo::DeviceInfo()
   : m_portName{nullptr}
@@ -233,7 +231,6 @@ static std::vector<DeviceInfo> GetDevices()
   return devices;
 }
 
-
 int TMCCInterface::EnumerateDevices(DeviceInfo** devices)
 {
   s_devices = GetDevices();
@@ -242,8 +239,7 @@ int TMCCInterface::EnumerateDevices(DeviceInfo** devices)
   return s_devices.size();
 }
 
-
-bool TMCCInterface::Init(int device, bool pdi)
+bool TMCCInterface::Init(int device, bool base3USB)
 {
   if (device < 0 || device >= s_devices.size())
     return false;
@@ -263,7 +259,7 @@ bool TMCCInterface::Init(int device, bool pdi)
   DCB dcb;
   s_serial = CreateFile(
     s_currentDevice->GetPortName(),
-    (pdi ? GENERIC_READ | GENERIC_WRITE : GENERIC_WRITE),
+    (GENERIC_WRITE),
     0,
     NULL,
     OPEN_EXISTING,
@@ -279,7 +275,10 @@ bool TMCCInterface::Init(int device, bool pdi)
     return false;
   }
 
-  dcb.BaudRate = CBR_9600; //9600 Baud
+  if(base3USB)
+    dcb.BaudRate = CBR_115200; // 11520 baud rate for Base3 USB port
+  else
+    dcb.BaudRate = CBR_9600; //9600 Baud
   dcb.ByteSize = 8; //8 data bits
   dcb.Parity = NOPARITY; //no parity
   dcb.StopBits = ONESTOPBIT; //1 stop
@@ -295,7 +294,6 @@ bool TMCCInterface::Init(int device, bool pdi)
   return true;
 }
 
-
 void TMCCInterface::Shutdown()
 {
 #ifdef WINDOWS
@@ -310,27 +308,6 @@ void TMCCInterface::Shutdown()
     delete s_currentDevice;
   s_currentDevice = nullptr;
 }
-
-
-bool TMCCInterface::PollEvent(TMCCEvent* o_evt)
-{
-  if (!s_currentDevice)
-    return false;
-
-#ifdef WINDOWS
-  if (!s_serial)
-    return false;
-
-  DWORD bytesread;
-
-  // TODO: PDI
-  //ReadFile(s_serial, )
-  //bSucceeded = WriteFile(s_serial, pData, length, &byteswritten, NULL);
-#endif // WINDOWS
-
-  return false;
-}
-
 
 bool TMCCInterface::WriteData(ubyte* pData, int length)
 {
@@ -354,6 +331,78 @@ bool TMCCInterface::WriteData(ubyte* pData, int length)
   return bSucceeded;
 }
 
+int PDIInterface::EnumerateDevicesPDI(DeviceInfo** devices)
+{
+  s_devices = GetDevices();
+
+  *devices = s_devices.data();
+  return s_devices.size();
+}
+
+bool PDIInterface::InitPDI(int device)
+{
+  if (device < 0 || device >= s_devices.size())
+    return false;
+
+  if (s_currentDevice)
+    delete s_currentDevice;
+  s_currentDevice = new DeviceInfo(s_devices[device]);
+  printf("Initialized PDI Bus device %d [%s]\n", device, s_devices[device].GetFriendlyName());
+
+  return true;
+}
+
+void PDIInterface::ShutdownPDI()
+{
+  if (s_currentDevice)
+    delete s_currentDevice;
+  s_currentDevice = nullptr;
+}
+
+bool PDIInterface::WriteData(ubyte* pData, int length)
+{
+  if (!s_currentDevice)
+  {
+    //assert(false);
+    return false;
+  }
+
+  bool bSucceeded = false;
+
+#ifdef WINDOWS
+  DCB dcb;
+  DWORD byteswritten;
+  HANDLE hPort = CreateFile(
+    s_currentDevice->GetPortName(),
+    GENERIC_WRITE,
+    0,
+    NULL,
+    OPEN_EXISTING,
+    0,
+    NULL
+  );
+
+  if (!GetCommState(hPort, &dcb))
+  {
+    CloseHandle(hPort);
+    return false;
+  }
+  dcb.BaudRate = CBR_115200; //115200 Baud
+  dcb.ByteSize = 8; //8 data bits
+  dcb.Parity = NOPARITY; //no parity
+  dcb.StopBits = ONESTOPBIT; //1 stop
+  if (!SetCommState(hPort, &dcb))
+  {
+    CloseHandle(hPort);
+    return false;
+  }
+  bSucceeded = WriteFile(hPort, pData, length, &byteswritten, NULL);
+  CloseHandle(hPort); //close the handle
+
+#endif // WINDOWS
+
+  return bSucceeded;
+}
 
 
 enum CommandType : uint8
@@ -1069,7 +1118,11 @@ struct EngineCommand2 : public TMCC2Command
 };
 
 
+bool TMCCInterface::SendEngineCommand2(EngineHandle id, EngineCommand2Params command)
+{
+  return SendEngineCommand(EngineCommand2(id, (EngineCommand2Params)command));
 
+}
 
 
 bool TMCCInterface::EngineBlowHorn1TMCC2(EngineHandle id)
@@ -1513,6 +1566,13 @@ bool TMCCInterface::EngineSetCarCabinLightAuto(EngineHandle id)
   return SendMultiWordCommand(MultiWordCommand(id, PI_LIGHTING_CONTROLS, LT_CAR_CABIN_LIGHT_AUTO));
 }
 
+bool TMCCInterface::SoundMaskControl(SoundMaskingControl dialog, SoundMaskingControl signal)
+{
+  uint16 params = ((signal & 0x3) << 2) | (dialog & 0x3);
+  //printf("dialog: %d signal: %d params: %d\n", dialog, signal, params);
+  return params;
+}
+
 bool TMCCInterface::EngineToggleSequenceCtrl(EngineHandle id, TMCCActiveState state)
 {
   // First need to send the Enable Sequence control command, followed by the Railsounds dialogue command for it otherwise the crewtalk/whistle will not enable. 
@@ -1531,6 +1591,32 @@ bool TMCCInterface::EngineTogglePrimeMover(EngineHandle id, TMCCActiveState stat
   return SendMultiWordCommand(MultiWordCommand(id, PI_RAILSOUNDS_EFFECT_TRIGGERS, state == TMCC_ON ? ET_PRIME_MOVER_ON : ET_PRIME_MOVER_OFF));
 }
 
+bool TMCCInterface::EngineSoundMaskControl(EngineHandle id, SoundMaskingControl dialog, SoundMaskingControl signal)
+{
+  uint16 params = ((signal & 0x3) << 2) | (dialog & 0x3);
+  //printf("dialog: %d signal: %d params: %d\n", dialog, signal, params);
+  return SendMultiWordCommand(MultiWordCommand(id, PI_RAILSOUNDS_MASKING_CONTROL, params));
+}
+
+bool TMCCInterface::EngineSoundMaskPlayNever(EngineHandle id)
+{
+  return SendMultiWordCommand(MultiWordCommand(id, PI_RAILSOUNDS_MASKING_CONTROL, 0x0A));
+}
+
+bool TMCCInterface::EngineSoundMaskPlayAlways(EngineHandle id)
+{
+  return SendMultiWordCommand(MultiWordCommand(id, PI_RAILSOUNDS_MASKING_CONTROL, 0x05));
+}
+
+bool TMCCInterface::EnginePlayRailsoundsEffectTrigger(EngineHandle id, RailSoundsEffectTriggerParams command)
+{
+  return SendMultiWordCommand(MultiWordCommand(id, PI_RAILSOUNDS_EFFECT_TRIGGERS, (RailSoundsEffectTriggerParams)command));
+}
+
+bool TMCCInterface::EnginePlayEffectCommand(EngineHandle id, EffectCommandParams command)
+{
+  return SendMultiWordCommand(MultiWordCommand(id, PI_EFFECTS_CONTROLS, (EffectCommandParams)command));
+}
 
 // Unknown reserved areas. Must do more testing. 
 
@@ -1565,4 +1651,11 @@ bool TMCCInterface::EngineReservedArea11(EngineHandle id, int x)
 bool TMCCInterface::EngineReservedArea12(EngineHandle id, int x)
 {
   return SendMultiWordCommand(MultiWordCommand(id, PI_RESERVED_12, x));
+}
+
+
+
+bool PDIInterface::EngineBlowHorn1(EngineHandle id)
+{
+  return SendTMCC1PDICommand(0x27, EngineCommand(id, CT_ACTION, EC_BLOW_HORN_1));
 }

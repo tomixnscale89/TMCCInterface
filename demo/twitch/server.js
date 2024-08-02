@@ -58,7 +58,6 @@ var vote_time = 5.0;
 var dialog_cooldown_time = 5.0;
 var max_throttle = 200.0;
 var input_is_legacy = null;
-var throttle_keepalive = true;
 
 for (let i = 0; i < args.length; i++) {
   if (args[i] === "-engine" && i + 1 < args.length) {
@@ -103,9 +102,6 @@ for (let i = 0; i < args.length; i++) {
   else if (args[i] === "-legacy" && i + 1 < args.length) {
     input_is_legacy = args[i + 1].split(",").map(s => parseInt(s.trim()));
 
-  }
-  else if (args[i] === "-nokeepalive") {
-    throttle_keepalive = false;
   }
 }
 
@@ -534,23 +530,6 @@ function mode(a) {
   ).reduce((a, v) => v[0] < a[0] ? a : v, [0, null])[1];
 }
 
-let cur_throttle = {};
-function pumpThrottleMessages() {
-  if (tmcc) {
-    for (const [key, value] of Object.entries(cur_throttle)) {
-      checkLegacy(key);
-      writeCommand(`setThrottle ${key} ${value}\r\n`);
-    }
-  }
-}
-
-// pump out throttle update messages once every second
-if (throttle_keepalive) {
-  setTimeout(function () {
-    pumpThrottleMessages();
-  }, 1000);
-}
-
 declareVoteType(VoteType.Throttle,
   // Vote data
   function() {
@@ -570,9 +549,8 @@ declareVoteType(VoteType.Throttle,
 
     graph.updateSpeed(channel, avg);
     if (tmcc) {
-      // checkLegacy(channel_engine_ids[channel]);
-      cur_throttle[channel_engine_ids[channel]] = avg / 200.0;
-      pumpThrottleMessages();
+      checkLegacy(channel_engine_ids[channel]);
+      writeCommand(`setThrottle ${channel_engine_ids[channel]} ${(avg / 200.0)}\r\n`);
     }
   }
 );

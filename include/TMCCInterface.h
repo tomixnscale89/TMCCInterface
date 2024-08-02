@@ -140,11 +140,11 @@ enum EngineCommand2Params : uint16
   EC2_CREWTALK_SPEED_VAR       = 0b100010010, // just numeric 2
   EC2_STATION_DINER_LIGHTS_OFF = 0b100011000, // just numeric 8
   EC2_STATION_DINER_LIGHTS_ON  = 0b100011001, // just numeric 9
-  //EC2_RESERVED                          = 0b100011010,
+  EC2_SECONDARY_CHUFF                       = 0b100011010,
   EC2_FORWARD_DIRECTION_UNUSED = 0b100011011,
   EC2_BLOW_HORN_1              = 0b100011100,
   EC2_RING_BELL                = 0b100011101,
-  //EC2_RESERVED                          = 0b100011110,
+  EC2_CHUFF                          = 0b100011110,
   EC2_BLOW_HORN_2                     = 0b100011111,
   EC2_ASSIGN_AS_SINGLE_UNIT_FORWARD   = 0b100100000,
   EC2_ASSIGN_AS_SINGLE_UNIT_REVERSE   = 0b100100001,
@@ -222,18 +222,42 @@ enum EffectCommandParams : uint16
   FX_SUBWAY_LEFT_DOOR_CLOSE   = 0b00100001,
   FX_SUBWAY_RIGHT_DOOR_OPEN   = 0b00100010,
   FX_SUBWAY_RIGHT_DOOR_CLOSE  = 0b00100011,
+
+  // Vision Freight Car Sounds
   FX_STOCK_CAR_OPTION_1_ON    = 0b00110000,
   FX_STOCK_CAR_OPTION_1_OFF   = 0b00110001,
   FX_STOCK_CAR_OPTION_2_ON    = 0b00110010,
   FX_STOCK_CAR_OPTION_2_OFF   = 0b00110011,
-  FX_STOCK_CAR_LOAD           = 0b00110100,
-  FX_STOCK_CAR_UNLOAD         = 0b00110101,
-  FX_STOCK_CAR_FRED_ON        = 0b00110110,
-  FX_STOCK_CAR_FRED_OFF       = 0b00110111,
+  FX_STOCK_CAR_LOAD           = 0b00110100, // No dialogue plays here
+  FX_STOCK_CAR_UNLOAD         = 0b00110101, // No dialogue plays here
+  FX_STOCK_CAR_FRED_ON        = 0b00110110, // only on Gen 1 Vision stock cars
+  FX_STOCK_CAR_FRED_OFF       = 0b00110111, // only on Gen 1 Vision stock cars
   FX_STOCK_CAR_FLAT_WHEEL_ON  = 0b00111000,
   FX_STOCK_CAR_FLAT_WHEEL_OFF = 0b00111001,
-  FX_STOCK_CAR_GAME_ON        = 0b00111010,
-  FX_STOCK_CAR_GAME_OFF       = 0b00111011
+  FX_STOCK_CAR_GAME_ON        = 0b00111010, // only on Gen 1 Vision stock cars
+  FX_STOCK_CAR_GAME_OFF       = 0b00111011, // only on Gen 1 Vision stock cars
+  FX_STOCK_CAR_SCENE_0        = 0b00111100,
+  FX_STOCK_CAR_SCENE_1        = 0b00111101,
+  FX_STOCK_CAR_SCENE_2        = 0b00111110,
+  FX_STOCK_CAR_SCENE_3        = 0b00111111,
+
+  // Smoke Fan Control
+  FX_SMOKE_HEATER1_OFF        = 0b01000000,
+  FX_SMOKE_HEATER1_LOW        = 0b01000001,
+  FX_SMOKE_HEATER1_MEDIUM     = 0b01000010,
+  FX_SMOKE_HEATER1_HIGH       = 0b01000011,
+  FX_SMOKE_HEATER2_OFF = 0b01000100,
+  FX_SMOKE_HEATER2_LOW = 0b01000101,
+  FX_SMOKE_HEATER2_MEDIUM = 0b01000110,
+  FX_SMOKE_HEATER2_HIGH = 0b01000111,
+  FX_SMOKE_HEATER1_RESTORE = 0b01001000,
+  FX_SMOKE_HEATER2_RESTORE = 0b01001001,
+
+  // Depleting Coal Load Options
+  FX_VISION_COAL_FEATURE_EMPTY =  0x50,
+  FX_VISION_COAL_FEATURE_FULL = 0x51,
+  FX_VISION_COAL_FEATURE_EMPTYING = 0x52,
+  FX_VISION_COAL_FEATURE_FILLING = 0x53
 };
 
 enum RailSoundsEffectTriggerParams : uint16
@@ -247,7 +271,7 @@ enum RailSoundsEffectTriggerParams : uint16
   // Reserved from 0x16 - 0x19
   ET_CYL_COCK_CLEAR_OFF            = 0b00100000,
   ET_CYL_COCK_CLEAR_ON             = 0b00100001,
-  ET_RESERVED                      = 0b00100010,
+  ET_WHEEL_SLIP_TRIGGER                      = 0b00100010,
   ET_STANDBY_WARNING_BELL_ON       = 0b00100011,
   ET_STANDBY_MODE_OFF              = 0b00100100,
   ET_STANDBY_MODE_ON               = 0b00100101,
@@ -256,9 +280,15 @@ enum RailSoundsEffectTriggerParams : uint16
   ET_CIRCUIT_BREAKER_MAIN_LIGHT    = 0b00101000,
   ET_CIRCUIT_BREAKER_CAB_LIGHT     = 0b00101001,
   ET_CIRCUIT_BREAKER_GROUND_LIGHT  = 0b00101010,
-  ET_RESERVED2                     = 0b00101011,
+  ET_COMPLETION_LETOFF                     = 0b00101011,
   ET_SEQUENCE_CONTROL_OFF          = 0b00101100,
   ET_SEQUENCE_CONTROL_ON           = 0b00101101,
+
+  ET_RESET_ODOMETER                =0x30,
+  ET_INCREMENT_DIESEL_FUEL_BY_10GAL = 0x31,
+  // reserved 0x32 - 0x3F
+
+  //ET_RS_CONSUMABLE_PARAMETER_0_MASK = 
 };
 
 
@@ -297,7 +327,7 @@ enum DialogCommandParams : uint16
     DC_ENGINEER_CONTEXT_DEPENDENT       = 0b00011110,
     DC_EMERGENCY_CONTEXT_DEPENDENT      = 0b00011111,
     DC_TOWER_CONTEXT_DEPENDENT          = 0b00100000,
-    //DC_RESERVED2                        = 0b00100001,
+    DC_ENGINEER_FIRST_ENGINE_STARTUP = 0b00100001,
     DC_TOWER_DEPARTURE_DENIED           = 0b00100010,
     DC_TOWER_DEPARTURE_GRANTED          = 0b00100011,
     DC_TOWER_HAVE_DEPARTED              = 0b00100100,
@@ -306,7 +336,7 @@ enum DialogCommandParams : uint16
     DC_TOWER_ARRIVING_SOON        = 0b00101101,
     DC_TOWER_HAVE_ARRIVED         = 0b00101110,
     DC_TOWER_SHUT_DOWN            = 0b00101111,
-    DC_CONDUCTOR_ALL_ABOARD       = 0b00110000,
+    DC_POLAR_EXPRESS_CONDUCTOR_ALL_ABOARD       = 0b00110000,
     DC_ENGINEER_ACK_STANDING_BY   = 0b00110001,
     DC_ENGINEER_ACK_CLEARED_TO_GO = 0b00110010,
     DC_ENGINEER_ACK_CLEAR_AHEAD   = 0b00110011,
@@ -328,8 +358,8 @@ enum DialogCommandParams : uint16
     DC_ENGINEER_SPEAK_WATER_REFILL = 0b01000001,
 
     // Doc 1.22 says nothing until 0x50, i think otherwise. 
-    DC_SEQ_CONTROL_DISABLE             = 0b01010000,
-    DC_SEQ_CONTROL_ENABLE              = 0b01010001,
+    DC_SEQ_CONTROL_DISABLE             = 0b01010000, // DOCS say unused
+    DC_SEQ_CONTROL_ENABLE              = 0b01010001, // DOCS say unused
     DC_SEQ_CONTROL_CLEARED             = 0b01010010,
     DC_SEQ_CONTROL_HAVE_DEPARTED       = 0b01010011,
     DC_SEQ_CONTROL_IN_TRANSIT          = 0b01010100,
@@ -345,9 +375,22 @@ enum DialogCommandParams : uint16
     DC_SEQ_CONTROL_RESERVED3           = 0b01011110,
     DC_SEQ_CONTROL_RESERVED4           = 0b01011111,
 
+
+    // Dialogue that plays when in BT mode
+
+    DC_BLE_STARTUP_SEQUENCE = 0x60,
+    DC_BLE_DIALOGUE_STANDBY_HOLD = 0x61,
+    DC_BLE_DIALOGUE_CLEAR_OUTBOUND = 0x62,
+    DC_BLE_DIALOGUE_HAVE_DEPARTED = 0x63,
+    DC_BLE_DIALOGUE_CLEAR_AHEAD = 0x64,
+    DC_BLE_DIALOGUE_CLEAR_INBOUND = 0x65,
+    DC_BLE_DIALOGUE_HAVE_ARRIVED = 0x66,
+    DC_BLE_DIALOGUE_ENGINEER_ACK = 0x67,
+
     DC_STATION_SOUND_CAR_CONDUCTOR_NEXT_STOP      = 0b01101000,
     DC_STATION_SOUND_CAR_CONDUCTOR_WATCH_STEP     = 0b01101001,
     DC_STATION_SOUND_CAR_CONDUCTOR_ALL_ABOARD     = 0b01101010,
+    DC_AUX_TENDER_ALL_ABOARD                      = 0x30,
     DC_STATION_SOUND_CAR_CONDUCTOR_TICKETS_PLZ    = 0b01101011,
     DC_STATION_SOUND_CAR_CONDUCTOR_PREMATURE_STOP = 0b01101100,
     DC_STATION_SOUND_CAR_STEWARD_WELCOME          = 0b01101101,
@@ -360,6 +403,27 @@ enum DialogCommandParams : uint16
     DC_STATION_SOUND_CAR_PA_TRAIN_DEPARTING       = 0b01110100,
     DC_STATION_SOUND_CAR_STARTUP                  = 0b01110101,
     DC_STATION_SOUND_CAR_SHUTDOWN                 = 0b01110110,
+    DC_FREIGHT_CAR_LOADING =  0x7D, // Also known as special guest enable
+    DC_FREIGHT_CAR_UNLOADING = 0x7E, // Also known as special guest disable
+
+
+    // Sequence Control Range for Station sound Diner Cars
+    // 0x80-0x8D
+
+     DC_STATION_SOUND_CAR_SEQCRTL_PHASE_1 = 0x80,
+     DC_STATION_SOUND_CAR_SEQCRTL_PHASE_2 = 0x81,
+     DC_STATION_SOUND_CAR_SEQCRTL_PHASE_3 = 0x82,
+     DC_STATION_SOUND_CAR_SEQCRTL_PHASE_4 = 0x83,
+     DC_STATION_SOUND_CAR_SEQCRTL_PHASE_5 = 0x84,
+     DC_STATION_SOUND_CAR_SEQCRTL_PHASE_6 = 0x85,
+     DC_STATION_SOUND_CAR_SEQCRTL_PHASE_7 = 0x86,
+     DC_STATION_SOUND_CAR_SEQCRTL_PHASE_8 = 0x87,
+     DC_STATION_SOUND_CAR_SEQCRTL_PHASE_9 = 0x88,
+     DC_STATION_SOUND_CAR_SEQCRTL_PHASE_10 = 0x89,
+     DC_STATION_SOUND_CAR_SEQCRTL_PHASE_11 = 0x8A,
+     DC_STATION_SOUND_CAR_SEQCRTL_PHASE_12 = 0x8B,
+     DC_STATION_SOUND_CAR_SEQCRTL_PHASE_13 = 0x8C,
+     DC_STATION_SOUND_CAR_SEQCRTL_PHASE_14 = 0x8D,
 };
 
 enum LightingCommandParams : uint16
@@ -396,7 +460,17 @@ enum LightingCommandParams : uint16
   LT_CAR_CABIN_LIGHT_AUTO         = 0b11111010
 };
 
-
+enum SoundMaskingControl
+{
+  DIALOG_NO_CHANGE = 0x0,
+  DIALOG_PLAY_ALWAYS = 0x1, // always talk
+  DIALOG_PLAY_NEVER = 0x2, // never talk
+  DIALOG_DEFAULT = 0x3,
+  SIGNAL_NO_CHANGE = 0x0,
+  SIGNAL_PLAY_ALWAYS = 0x1, // always play horn
+  SIGNAL_PLAY_NEVER = 0x2, // never play horn
+  SIGNAL_DEFAULT = 0x3,
+};
 
 struct MultiWordCommand
 {
@@ -471,6 +545,8 @@ enum TMCCActiveState
   TMCC_OFF
 };
 
+
+
 struct DeviceInfo
 {
 public:
@@ -496,36 +572,14 @@ private:
   friend class TMCCInterface;
 };
 
-enum EventType
-{
-  ET_SENSOR_TRACK
-};
-
-struct SensorData
-{
-
-};
-
-struct TMCCEvent
-{
-  EventType type;
-  union
-  {
-    SensorData sensor;
-  };
-};
-
 class TMCCInterface
 {
 public:
 
   TMCC_API static int EnumerateDevices(DeviceInfo** devices);
   
-  TMCC_API static bool Init(int device, bool pdi = false);
+  TMCC_API static bool Init(int device, bool base3USB);
   TMCC_API static void Shutdown();
-
-  // Poll events from the serial interface.
-  TMCC_API static bool PollEvent(TMCCEvent* o_evt);
 
   // accessory commands
   TMCC_API static bool AccessoryAux1Off(AccessoryHandle id);
@@ -651,6 +705,8 @@ public:
 
   // TMCC2 commands
 
+  TMCC_API static bool SendEngineCommand2(EngineHandle id, EngineCommand2Params command); // send any kind of command directly
+
   TMCC_API static bool EngineBlowHorn1TMCC2(EngineHandle id);
   TMCC_API static bool EngineBlowHorn2TMCC2(EngineHandle id);
 
@@ -667,7 +723,6 @@ public:
   //static bool EngineAux2On_2(EngineHandle id);
   TMCC_API static bool EngineSetAux2_2(EngineHandle id, TMCCActiveState state);
 
-  TMCC_API static bool EngineAux3Trigger(EngineHandle id);
 
   TMCC_API static bool SendGenericCommand(EngineHandle id, uint16 cmd);
 
@@ -701,6 +756,8 @@ public:
   TMCC_API static bool TrainStopImmediate2(TrainHandle id);
 
   // stuff only supported by TMCC2 (hence no '2' suffix)
+  TMCC_API static bool EngineAux3Trigger(EngineHandle id);
+
   // 0-7 inclusive
   TMCC_API static bool EngineSetDieselRunLevel(EngineHandle id, int level);
   TMCC_API static bool EngineRSTriggerWaterInjector(EngineHandle id);
@@ -786,9 +843,17 @@ public:
   TMCC_API static bool EngineSetCarCabinLightAuto(EngineHandle id);
 
   // effects control
+  TMCC_API static bool EnginePlayRailsoundsEffectTrigger(EngineHandle id, RailSoundsEffectTriggerParams command);
+  TMCC_API static bool EnginePlayEffectCommand(EngineHandle id, EffectCommandParams command);
+
+
   TMCC_API static bool EngineToggleSequenceCtrl(EngineHandle id, TMCCActiveState state);
   TMCC_API static bool EngineToggleCylinderCock(EngineHandle id, TMCCActiveState state);
   TMCC_API static bool EngineTogglePrimeMover(EngineHandle id, TMCCActiveState state);
+  TMCC_API static bool SoundMaskControl(SoundMaskingControl dialog, SoundMaskingControl signal);
+  TMCC_API static bool EngineSoundMaskControl(EngineHandle id, SoundMaskingControl dialog, SoundMaskingControl signal);
+  TMCC_API static bool EngineSoundMaskPlayNever(EngineHandle id);
+  TMCC_API static bool EngineSoundMaskPlayAlways(EngineHandle id);
 
   // Not sure what these reserved areas are for. 
   TMCC_API static bool EngineReservedArea3(EngineHandle id, int x);
